@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CasaHub — Gestione Coinquilini</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #F1F5F9;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.75; }
+    }
+    .animate-pulse-soft { animation: pulse-soft 2s infinite; }
+  </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-700">
+
+  <!-- App Container (Mobile-first centered shell) -->
+  <div class="max-w-md mx-auto min-h-screen bg-slate-50 shadow-xl shadow-slate-200/60 flex flex-col relative pb-24">
+
+    <!-- Top Header -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-extrabold shadow-sm shadow-indigo-200">
+          CH
+        </div>
+        <div>
+          <h1 class="font-extrabold text-base tracking-tight text-slate-900 leading-none">CasaHub</h1>
+          <div class="flex items-center gap-1.5 mt-1">
+            <span id="dbStatusDot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span id="dbStatusText" class="text-[11px] font-medium text-slate-500">SQLite connesso</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Profile Switcher -->
+      <button onclick="openProfileModal()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 active:scale-95 transition px-2.5 py-1.5 rounded-full border border-slate-200/80">
+        <span id="headerAvatar" class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-xs" style="background-color: #4F46E5;">M</span>
+        <span id="headerUserName" class="text-xs font-bold text-slate-700">Marco</span>
+        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+    </header>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 translate-y-[-8px]">
+      <div class="bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="toastMsg">Operazione completata</span>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 px-4 pt-4 space-y-5">
+
+      <!-- ==================== TAB 1: FACCENDE ==================== -->
+      <section id="tab-chores" class="space-y-5">
+
+        <!-- Bacheca Stato della Casa -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Bacheca Casa</h2>
+            <button onclick="openNoticeModal()" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+              <span>+ Avviso</span>
+            </button>
+          </div>
+          <div id="noticesContainer" class="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Chores Header & Filters -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex bg-slate-200/70 p-1 rounded-xl">
+              <button id="filterAllBtn" onclick="setChoreFilter('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-xs transition">
+                Tutte
+              </button>
+              <button id="filterMineBtn" onclick="setChoreFilter('mine')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 transition flex items-center gap-1.5">
+                <span>Tocca a me</span>
+                <span id="myChoresBadge" class="bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full">0</span>
+              </button>
+            </div>
+
+            <button onclick="openChoreModal()" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm shadow-indigo-200 flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              <span>Faccenda</span>
+            </button>
+          </div>
+
+          <!-- Chores List -->
+          <div id="choresList" class="space-y-3">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: SPESA ==================== -->
+      <section id="tab-shopping" class="hidden space-y-4">
+
+        <!-- Supermarket Live Banner -->
+        <div id="supermarketBanner"></div>
+
+        <!-- Add Shopping Item Form -->
+        <form onsubmit="handleAddShopping(event)" class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+          <div class="flex gap-2">
+            <input id="shopInput" type="text" required placeholder="Cosa manca? (es. Latte, Carta forno...)"
+              class="flex-1 bg-slate-100 border-0 rounded-xl px-3.5 py-2.5 text-sm font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" />
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition text-white font-bold px-4 rounded-xl shadow-sm shadow-indigo-200">
+              +
+            </button>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="flex gap-2">
+              <button type="button" id="typeCommonBtn" onclick="setShopType('common')" class="px-3 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 transition">
+                🏠 Spesa Comune
+              </button>
+              <button type="button" id="typePersonalBtn" onclick="setShopType('personal')" class="px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-500 border border-transparent transition">
+                👤 Personale
+              </button>
+            </div>
+            <button type="button" id="clearBoughtBtn" onclick="handleClearBought()" class="hidden text-xs font-bold text-rose-600 hover:text-rose-700">
+              Svuota presi
+            </button>
+          </div>
+        </form>
+
+        <!-- Shopping List Items -->
+        <div id="shoppingList" class="space-y-2">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3: EQUITÀ ==================== -->
+      <section id="tab-equity" class="hidden space-y-4">
+        <div class="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-5 text-white shadow-md shadow-indigo-200">
+          <p class="text-xs font-bold uppercase tracking-wider text-indigo-200">Bilancia dell'Equità</p>
+          <h2 class="text-xl font-extrabold mt-1">Turni completati nel mese</h2>
+          <p class="text-xs text-indigo-100 mt-1">Ogni faccenda completata assegna +1 punto e ruota automaticamente il turno al coinquilino successivo.</p>
+        </div>
+
+        <div id="equityList" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-4">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: CASA & IMPOSTAZIONI ==================== -->
+      <section id="tab-settings" class="hidden space-y-4">
+
+        <!-- Security PIN Toggle -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-slate-800">Richiedi PIN al cambio profilo</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Evita che qualcuno segni i turni al posto tuo (PIN demo: 1234)</p>
+          </div>
+          <button id="pinToggleBtn" onclick="togglePinSetting()" class="w-12 h-7 rounded-full bg-slate-200 p-1 transition-colors duration-200 flex items-center">
+            <span id="pinToggleKnob" class="w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200"></span>
+          </button>
+        </div>
+
+        <!-- Roommates Management -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-800">Coinquilini in casa</h3>
+            <button onclick="openUserModal()" class="text-xs font-bold text-indigo-600 hover:text-indigo-700">+ Aggiungi</button>
+          </div>
+          <div id="usersManageList" class="divide-y divide-slate-100">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Reset DB -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-slate-800">Ripristina dati iniziali</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Resetta le tabelle SQLite ai valori di partenza</p>
+          </div>
+          <button onclick="handleResetDB()" class="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-bold transition">
+            Reset DB
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-2 flex justify-around items-center z-30">
+      <button onclick="switchTab('chores')" id="nav-chores" class="nav-btn flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-indigo-600 font-bold">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        <span class="text-[11px]">Faccende</span>
+      </button>
+
+      <button onclick="switchTab('shopping')" id="nav-shopping" class="nav-btn flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-slate-400 font-semibold relative">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span class="text-[11px]">Spesa</span>
+        <span id="navShopCount" class="hidden absolute top-0.5 right-2 w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">0</span>
+      </button>
+
+      <button onclick="switchTab('equity')" id="nav-equity" class="nav-btn flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-slate-400 font-semibold">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span class="text-[11px]">Equità</span>
+      </button>
+
+      <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center gap-1 px-3 py-1 rounded-xl text-slate-400 font-semibold">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="text-[11px]">Casa</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Modal: Switch Profile / PIN -->
+  <div id="profileModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-base text-slate-900">Chi sei?</h3>
+        <button onclick="closeModals()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      <div id="profileChoices" class="grid grid-cols-2 gap-2.5"></div>
+      <div id="pinPromptBox" class="hidden pt-2 border-t border-slate-100 space-y-2">
+        <p class="text-xs font-bold text-slate-600 text-center">Inserisci PIN per <span id="pinTargetName" class="text-indigo-600"></span></p>
+        <input id="pinVerifyInput" type="password" maxlength="4" inputmode="numeric" placeholder="••••"
+          class="w-full text-center tracking-[0.5em] text-lg font-extrabold bg-slate-100 rounded-xl py-2.5 outline-none focus:ring-2 focus:ring-indigo-500" />
+        <button onclick="confirmPinSwitch()" class="w-full bg-indigo-600 text-white font-bold text-xs py-2.5 rounded-xl">Conferma</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nuova Faccenda -->
+  <div id="choreModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
+    <form onsubmit="handleAddChore(event)" class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3.5">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-base text-slate-900">Nuova Faccenda</h3>
+        <button type="button" onclick="closeModals()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Titolo</label>
+        <input id="choreTitleInput" type="text" required placeholder="Es. Lavare pavimento cucina" class="w-full mt-1 bg-slate-100 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500" />
+      </div>
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="text-xs font-bold text-slate-500">Stanza / Tipo</label>
+          <select id="choreRoomInput" class="w-full mt-1 bg-slate-100 rounded-xl px-3 py-2.5 text-sm font-medium outline-none">
+            <option value="Cucina">🍳 Cucina</option>
+            <option value="Bagno">🚿 Bagno</option>
+            <option value="Salotto">🛋️ Salotto</option>
+            <option value="Spazzatura">♻️ Spazzatura</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500">Frequenza</label>
+          <select id="choreFreqInput" class="w-full mt-1 bg-slate-100 rounded-xl px-3 py-2.5 text-sm font-medium outline-none">
+            <option value="2">Ogni 2 giorni</option>
+            <option value="3">Ogni 3 giorni</option>
+            <option value="7" selected>Ogni settimana</option>
+            <option value="14">Ogni 2 settimane</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-500">Inizia il turno</label>
+        <select id="choreAssigneeInput" class="w-full mt-1 bg-slate-100 rounded-xl px-3 py-2.5 text-sm font-medium outline-none"></select>
+      </div>
+      <label class="flex items-center gap-2 text-xs font-bold text-slate-600 pt-1">
+        <input id="choreUrgentInput" type="checkbox" class="rounded text-indigo-600" />
+        <span>Segna come urgente (Oggi)</span>
+      </label>
+      <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm py-3 rounded-xl shadow-sm">Salva nel Database</button>
+    </form>
+  </div>
+
+  <!-- Modal: Nuovo Avviso Bacheca -->
+  <div id="noticeModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
+    <form onsubmit="handleAddNotice(event)" class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3.5">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-base text-slate-900">Avviso per la casa</h3>
+        <button type="button" onclick="closeModals()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      <div class="flex gap-2">
+        <select id="noticeIconInput" class="bg-slate-100 rounded-xl px-3 py-2.5 text-base outline-none">
+          <option value="🧺">🧺</option>
+          <option value="📚">📚</option>
+          <option value="🍕">🍕</option>
+          <option value="🔧">🔧</option>
+          <option value="📢">📢</option>
+        </select>
+        <input id="noticeTextInput" type="text" required placeholder="Es. Lavatrice fino alle 19" class="flex-1 bg-slate-100 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500" />
+      </div>
+      <button type="submit" class="w-full bg-indigo-600 text-white font-bold text-sm py-3 rounded-xl">Pubblica Avviso</button>
+    </form>
+  </div>
+
+  <!-- Modal: Nuovo Coinquilino -->
+  <div id="userModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
+    <form onsubmit="handleAddUser(event)" class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3.5">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-base text-slate-900">Aggiungi Coinquilino</h3>
+        <button type="button" onclick="closeModals()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      <input id="newUserName" type="text" required placeholder="Nome (es. Elena)" class="w-full bg-slate-100 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none" />
+      <div class="grid grid-cols-2 gap-2.5">
+        <div>
+          <label class="text-xs font-bold text-slate-500">Colore Avatar</label>
+          <select id="newUserColor" class="w-full mt-1 bg-slate-100 rounded-xl px-3 py-2.5 text-sm font-medium outline-none">
+            <option value="#4F46E5">Indaco</option>
+            <option value="#0D9488">Verde Smeraldo</option>
+            <option value="#EA580C">Arancione</option>
+            <option value="#DB2777">Magenta</option>
+            <option value="#2563EB">Blu</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-500">PIN (4 cifre)</label>
+          <input id="newUserPin" type="text" maxlength="4" value="1234" required class="w-full mt-1 bg-slate-100 rounded-xl px-3 py-2.5 text-sm font-medium outline-none" />
+        </div>
+      </div>
+      <button type="submit" class="w-full bg-indigo-600 text-white font-bold text-sm py-3 rounded-xl">Aggiungi</button>
+    </form>
+  </div>
+
+  <script>
+    // ==================== STATO APPLICAZIONE ====================
+    let state = {
+      users: [],
+      chores: [],
+      shopping: [],
+      notices: [],
+      supermarketAlert: null,
+      requirePin: false,
+      currentUserId: localStorage.getItem('casahub_user') || 'u1',
+      choreFilter: 'all',
+      shopType: 'common'
+    };
+
+    let pendingSwitchUserId = null;
+
+    // ==================== COMUNICAZIONE CON DATABASE (FETCH) ====================
+    async function syncFromDatabase(silent = false) {
+      try {
+        const res = await fetch('/api/state');
+        if (!res.ok) throw new Error('Errore server');
+        const data = await res.json();
+
+        state.users = data.users || [];
+        state.chores = data.chores || [];
+        state.shopping = data.shopping || [];
+        state.notices = data.notices || [];
+        state.supermarketAlert = data.supermarketAlert || null;
+        state.requirePin = Boolean(data.requirePin);
+
+        // Verifica che l'utente selezionato esista ancora
+        if (state.users.length > 0 && !state.users.some(u => u.id === state.currentUserId)) {
+          state.currentUserId = state.users[0].id;
+          localStorage.setItem('casahub_user', state.currentUserId);
+        }
+
+        setConnectionStatus(true);
+        renderAll();
+      } catch (err) {
+        setConnectionStatus(false);
+        if (!silent) showToast('Server offline: controlla node server.js');
+      }
+    }
+
+    function setConnectionStatus(online) {
+      const dot = document.getElementById('dbStatusDot');
+      const text = document.getElementById('dbStatusText');
+      if (online) {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+        text.textContent = 'SQLite sincronizzato';
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+        text.textContent = 'Disconnesso dal server';
+      }
+    }
+
+    // ==================== AZIONI DATABASE ====================
+    async function completeChore(choreId) {
+      const chore = state.chores.find(c => c.id === choreId);
+      if (!chore || state.users.length === 0) return;
+
+      // Calcola automaticamente il coinquilino successivo nella rotazione
+      const currentIdx = state.users.findIndex(u => u.id === chore.assigneeId);
+      const nextIdx = (currentIdx + 1) % state.users.length;
+      const nextUser = state.users[nextIdx];
+
+      await fetch(`/api/chores/${choreId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: state.currentUserId,
+          nextUserId: nextUser.id
+        })
+      });
+
+      showToast(`+1 punto! Prossimo turno: ${nextUser.name}`);
+      await syncFromDatabase(true);
+    }
+
+    async function deleteChore(choreId) {
+      await fetch(`/api/chores/${choreId}`, { method: 'DELETE' });
+      showToast('Faccenda eliminata');
+      await syncFromDatabase(true);
+    }
+
+    async function handleAddChore(e) {
+      e.preventDefault();
+      const title = document.getElementById('choreTitleInput').value.trim();
+      const room = document.getElementById('choreRoomInput').value;
+      const freqDays = parseInt(document.getElementById('choreFreqInput').value, 10);
+      const assigneeId = document.getElementById('choreAssigneeInput').value;
+      const urgent = document.getElementById('choreUrgentInput').checked ? 1 : 0;
+
+      await fetch('/api/chores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          room,
+          freqDays,
+          assigneeId,
+          dueLabel: urgent ? 'Oggi' : 'Questa settimana',
+          urgent
+        })
+      });
+
+      e.target.reset();
+      closeModals();
+      showToast('Faccenda aggiunta');
+      await syncFromDatabase(true);
+    }
+
+    async function handleAddShopping(e) {
+      e.preventDefault();
+      const input = document.getElementById('shopInput');
+      const name = input.value.trim();
+      if (!name) return;
+
+      const currentUser = getCurrentUser();
+      await fetch('/api/shopping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          type: state.shopType,
+          addedBy: currentUser ? currentUser.name : 'Coinquilino'
+        })
+      });
+
+      input.value = '';
+      showToast('Aggiunto alla spesa');
+      await syncFromDatabase(true);
+    }
+
+    async function toggleShoppingItem(id) {
+      await fetch(`/api/shopping/${id}/toggle`, { method: 'PATCH' });
+      await syncFromDatabase(true);
+    }
+
+    async function handleClearBought() {
+      await fetch('/api/shopping/bought', { method: 'DELETE' });
+      showToast('Prodotti comprati rimossi');
+      await syncFromDatabase(true);
+    }
+
+    async function handleAddNotice(e) {
+      e.preventDefault();
+      const icon = document.getElementById('noticeIconInput').value;
+      const text = document.getElementById('noticeTextInput').value.trim();
+      const user = getCurrentUser();
+
+      await fetch('/api/notices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ icon, text, author: user ? user.name : 'Casa' })
+      });
+
+      e.target.reset();
+      closeModals();
+      showToast('Avviso pubblicato');
+      await syncFromDatabase(true);
+    }
+
+    async function deleteNotice(id) {
+      await fetch(`/api/notices/${id}`, { method: 'DELETE' });
+      await syncFromDatabase(true);
+    }
+
+    async function triggerSupermarketAlert(active) {
+      const user = getCurrentUser();
+      await fetch('/api/supermarket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          active,
+          author: user ? user.name : 'Un coinquilino',
+          expiresAt: active ? Date.now() + 15 * 60 * 1000 : null
+        })
+      });
+      if (active) showToast('Avviso supermercato inviato a tutti!');
+      await syncFromDatabase(true);
+    }
+
+    async function togglePinSetting() {
+      await fetch('/api/settings/pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requirePin: !state.requirePin })
+      });
+      await syncFromDatabase(true);
+    }
+
+    async function handleAddUser(e) {
+      e.preventDefault();
+      const name = document.getElementById('newUserName').value.trim();
+      const color = document.getElementById('newUserColor').value;
+      const pin = document.getElementById('newUserPin').value.trim() || '1234';
+
+      await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, color, pin })
+      });
+
+      e.target.reset();
+      closeModals();
+      showToast(`${name} aggiunto alla casa`);
+      await syncFromDatabase(true);
+    }
+
+    async function deleteUser(id) {
+      if (state.users.length <= 1) {
+        showToast('Deve esserci almeno un coinquilino');
+        return;
+      }
+      await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      showToast('Coinquilino rimosso');
+      await syncFromDatabase(true);
+    }
+
+    async function handleResetDB() {
+      if (!confirm('Vuoi ripristinare tutti i dati demo nel database SQLite?')) return;
+      await fetch('/api/reset', { method: 'POST' });
+      showToast('Database ripristinato');
+      await syncFromDatabase(true);
+    }
+
+    // ==================== RENDERING INTERFACCIA ====================
+    function getCurrentUser() {
+      return state.users.find(u => u.id === state.currentUserId) || state.users[0];
+    }
+
+    function renderAll() {
+      renderHeader();
+      renderNotices();
+      renderChores();
+      renderShopping();
+      renderEquity();
+      renderSettings();
+    }
+
+    function renderHeader() {
+      const user = getCurrentUser();
+      if (!user) return;
+      const av = document.getElementById('headerAvatar');
+      av.textContent = user.name.charAt(0).toUpperCase();
+      av.style.backgroundColor = user.color;
+      document.getElementById('headerUserName').textContent = user.name;
+    }
+
+    function renderNotices() {
+      const container = document.getElementById('noticesContainer');
+      if (state.notices.length === 0) {
+        container.innerHTML = `<div class="text-xs text-slate-400 bg-white border border-dashed border-slate-200 rounded-xl px-3.5 py-2.5 w-full">Nessun avviso attivo in casa.</div>`;
+        return;
+      }
+      container.innerHTML = state.notices.map(n => `
+        <div class="shrink-0 bg-white border border-slate-200/80 rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center gap-2.5 max-w-[260px]">
+          <span class="text-lg">${n.icon}</span>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-slate-800 truncate">${escapeHtml(n.text)}</p>
+            <p class="text-[10px] font-medium text-slate-400">da ${escapeHtml(n.author)}</p>
+          </div>
+          <button onclick="deleteNotice(${n.id})" class="text-slate-300 hover:text-rose-500 text-xs font-bold ml-1">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function renderChores() {
+      const myCount = state.chores.filter(c => c.assigneeId === state.currentUserId).length;
+      document.getElementById('myChoresBadge').textContent = myCount;
+
+      const filtered = state.choreFilter === 'mine'
+        ? state.chores.filter(c => c.assigneeId === state.currentUserId)
+        : state.chores;
+
+      const list = document.getElementById('choresList');
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 text-center border border-slate-200/80">
+            <p class="text-2xl mb-1">🎉</p>
+            <p class="text-sm font-bold text-slate-700">Nessuna faccenda in questa vista!</p>
+            <p class="text-xs text-slate-400 mt-1">Tutto pulito e in ordine.</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(c => {
+        const assignee = state.users.find(u => u.id === c.assigneeId) || { name: '?', color: '#64748B' };
+        const isMine = c.assigneeId === state.currentUserId;
+        return `
+          <div class="bg-white rounded-2xl p-4 border ${isMine ? 'border-indigo-200 ring-1 ring-indigo-100' : 'border-slate-200/80'} shadow-xs flex items-center justify-between gap-3">
+            <div class="space-y-1.5 min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">${escapeHtml(c.room)}</span>
+                ${c.urgent ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">⚡ ${escapeHtml(c.dueLabel)}</span>` : `<span class="text-[11px] font-medium text-slate-400">${escapeHtml(c.dueLabel)}</span>`}
+              </div>
+              <h3 class="font-bold text-sm text-slate-900 truncate">${escapeHtml(c.title)}</h3>
+              <div class="flex items-center gap-2 pt-0.5">
+                <span class="w-5 h-5 rounded-full text-[10px] text-white font-bold flex items-center justify-center" style="background-color: ${assignee.color}">${assignee.name.charAt(0)}</span>
+                <span class="text-xs font-semibold text-slate-600">Turno di <strong class="text-slate-800">${escapeHtml(assignee.name)}</strong></span>
+                <span class="text-[11px] text-slate-400">• ogni ${c.freqDays}g</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="completeChore(${c.id})" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition text-white text-xs font-extrabold px-3.5 py-2.5 rounded-xl shadow-xs shadow-emerald-200 flex items-center gap-1">
+                <span>Fatto</span>
+                <span>✓</span>
+              </button>
+              <button onclick="deleteChore(${c.id})" title="Elimina" class="p-2 text-slate-300 hover:text-rose-500 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderShopping() {
+      const banner = document.getElementById('supermarketBanner');
+      const alert = state.supermarketAlert;
+      const isAlertActive = alert && alert.active && alert.expiresAt > Date.now();
+
+      if (isAlertActive) {
+        const minsLeft = Math.max(1, Math.ceil((alert.expiresAt - Date.now()) / 60000));
+        banner.innerHTML = `
+          <div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-4 rounded-2xl shadow-md shadow-amber-200/70 flex items-center justify-between gap-3 animate-pulse-soft">
+            <div>
+              <p class="text-[11px] font-extrabold uppercase tracking-wider text-amber-100">🛒 Spesa lampo in corso</p>
+              <p class="text-sm font-extrabold mt-0.5">${escapeHtml(alert.author)} sta andando al supermercato!</p>
+              <p class="text-xs text-amber-100 mt-0.5">Aggiungi ora cosa manca (~${minsLeft} min rimasti)</p>
+            </div>
+            <button onclick="triggerSupermarketAlert(false)" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">
+              Chiudi
+            </button>
+          </div>`;
+      } else {
+        banner.innerHTML = `
+          <div class="bg-white border border-slate-200/80 p-3.5 rounded-2xl shadow-xs flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">🛒</div>
+              <div>
+                <h3 class="text-xs font-extrabold text-slate-800">Stai uscendo a fare la spesa?</h3>
+                <p class="text-[11px] text-slate-500">Avvisa i coinquilini per gli ultimi extra</p>
+              </div>
+            </div>
+            <button onclick="triggerSupermarketAlert(true)" class="bg-amber-500 hover:bg-amber-600 active:scale-95 transition text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">
+              Avvisa tutti
+            </button>
+          </div>`;
+      }
+
+      const unboughtCount = state.shopping.filter(i => !i.bought).length;
+      const boughtCount = state.shopping.filter(i => i.bought).length;
+
+      const navBadge = document.getElementById('navShopCount');
+      if (unboughtCount > 0) {
+        navBadge.textContent = unboughtCount;
+        navBadge.classList.remove('hidden');
+      } else {
+        navBadge.classList.add('hidden');
+      }
+
+      const clearBtn = document.getElementById('clearBoughtBtn');
+      clearBtn.classList.toggle('hidden', boughtCount === 0);
+
+      const list = document.getElementById('shoppingList');
+      if (state.shopping.length === 0) {
+        list.innerHTML = `<div class="bg-white rounded-2xl p-8 text-center border border-slate-200/80 text-xs font-medium text-slate-400">La lista della spesa è vuota.</div>`;
+        return;
+      }
+
+      // Ordina: prima quelli da comprare, poi quelli già spuntati
+      const sorted = [...state.shopping].sort((a, b) => a.bought - b.bought);
+
+      list.innerHTML = sorted.map(item => `
+        <div onclick="toggleShoppingItem(${item.id})" class="cursor-pointer bg-white hover:bg-slate-50/80 transition p-3.5 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3 ${item.bought ? 'opacity-55' : ''}">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-5 h-5 rounded-lg border-2 flex items-center justify-center transition ${item.bought ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'}">
+              ${item.bought ? '<span class="text-xs font-bold">✓</span>' : ''}
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-800 truncate ${item.bought ? 'line-through text-slate-400' : ''}">${escapeHtml(item.name)}</p>
+              <p class="text-[11px] text-slate-400">aggiunto da ${escapeHtml(item.addedBy)}</p>
+            </div>
+          </div>
+          <span class="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-lg ${item.type === 'common' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-700'}">
+            ${item.type === 'common' ? 'Comune' : 'Personale'}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    function renderEquity() {
+      const container = document.getElementById('equityList');
+      const totalPoints = state.users.reduce((acc, u) => acc + (u.points || 0), 0);
+      const sortedUsers = [...state.users].sort((a, b) => b.points - a.points);
+
+      container.innerHTML = sortedUsers.map((u, idx) => {
+        const pct = totalPoints > 0 ? Math.round((u.points / totalPoints) * 100) : 0;
+        return `
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center" style="background-color: ${u.color}">${u.name.charAt(0)}</span>
+                <div>
+                  <span class="text-sm font-bold text-slate-800">${escapeHtml(u.name)}</span>
+                  ${idx === 0 && u.points > 0 ? '<span class="ml-1.5 text-[10px] font-extrabold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">🏆 Top</span>' : ''}
+                </div>
+              </div>
+              <span class="text-xs font-extrabold text-slate-700">${u.points} turni <span class="text-slate-400 font-medium">(${pct}%)</span></span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-500" style="width: ${pct}%; background-color: ${u.color}"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderSettings() {
+      const btn = document.getElementById('pinToggleBtn');
+      const knob = document.getElementById('pinToggleKnob');
+      if (state.requirePin) {
+        btn.classList.replace('bg-slate-200', 'bg-indigo-600');
+        knob.classList.add('translate-x-5');
+      } else {
+        btn.classList.replace('bg-indigo-600', 'bg-slate-200');
+        knob.classList.remove('translate-x-5');
+      }
+
+      const list = document.getElementById('usersManageList');
+      list.innerHTML = state.users.map(u => `
+        <div class="py-2.5 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center" style="background-color: ${u.color}">${u.name.charAt(0)}</span>
+            <div>
+              <p class="text-sm font-bold text-slate-800">${escapeHtml(u.name)}</p>
+              <p class="text-[11px] text-slate-400">${u.points} faccende completate</p>
+            </div>
+          </div>
+          <button onclick="deleteUser('${u.id}')" class="text-xs font-bold text-slate-400 hover:text-rose-600">Rimuovi</button>
+        </div>
+      `).join('');
+    }
+
+    // ==================== NAVIGAZIONE & MODALI ====================
+    function switchTab(tab) {
+      ['chores', 'shopping', 'equity', 'settings'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+        const nav = document.getElementById(`nav-${t}`);
+        if (t === tab) {
+          nav.classList.add('text-indigo-600', 'font-bold');
+          nav.classList.remove('text-slate-400', 'font-semibold');
+        } else {
+          nav.classList.remove('text-indigo-600', 'font-bold');
+          nav.classList.add('text-slate-400', 'font-semibold');
+        }
+      });
+    }
+
+    function setChoreFilter(filter) {
+      state.choreFilter = filter;
+      const allBtn = document.getElementById('filterAllBtn');
+      const mineBtn = document.getElementById('filterMineBtn');
+      if (filter === 'all') {
+        allBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-xs transition';
+        mineBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 transition flex items-center gap-1.5';
+      } else {
+        mineBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-xs transition flex items-center gap-1.5';
+        allBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 transition';
+      }
+      renderChores();
+    }
+
+    function setShopType(type) {
+      state.shopType = type;
+      const cBtn = document.getElementById('typeCommonBtn');
+      const pBtn = document.getElementById('typePersonalBtn');
+      if (type === 'common') {
+        cBtn.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 transition';
+        pBtn.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-500 border border-transparent transition';
+      } else {
+        pBtn.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 transition';
+        cBtn.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-500 border border-transparent transition';
+      }
+    }
+
+    function openProfileModal() {
+      document.getElementById('pinPromptBox').classList.add('hidden');
+      const box = document.getElementById('profileChoices');
+      box.innerHTML = state.users.map(u => `
+        <button onclick="selectProfile('${u.id}')" class="p-3 rounded-2xl border ${u.id === state.currentUserId ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'} flex items-center gap-2.5 transition">
+          <span class="w-8 h-8 rounded-full text-white text-xs font-bold flex items-center justify-center" style="background-color: ${u.color}">${u.name.charAt(0)}</span>
+          <span class="text-sm font-bold text-slate-800">${escapeHtml(u.name)}</span>
+        </button>
+      `).join('');
+      document.getElementById('profileModal').classList.remove('hidden');
+    }
+
+    function selectProfile(userId) {
+      if (!state.requirePin || userId === state.currentUserId) {
+        state.currentUserId = userId;
+        localStorage.setItem('casahub_user', userId);
+        closeModals();
+        renderAll();
+        return;
+      }
+      const target = state.users.find(u => u.id === userId);
+      pendingSwitchUserId = userId;
+      document.getElementById('pinTargetName').textContent = target.name;
+      document.getElementById('pinVerifyInput').value = '';
+      document.getElementById('pinPromptBox').classList.remove('hidden');
+      document.getElementById('pinVerifyInput').focus();
+    }
+
+    function confirmPinSwitch() {
+      const target = state.users.find(u => u.id === pendingSwitchUserId);
+      const entered = document.getElementById('pinVerifyInput').value;
+      if (target && entered === target.pin) {
+        state.currentUserId = target.id;
+        localStorage.setItem('casahub_user', target.id);
+        closeModals();
+        renderAll();
+        showToast(`Ciao ${target.name}!`);
+      } else {
+        showToast('PIN errato (prova 1234)');
+      }
+    }
+
+    function openChoreModal() {
+      const select = document.getElementById('choreAssigneeInput');
+      select.innerHTML = state.users.map(u => `<option value="${u.id}" ${u.id === state.currentUserId ? 'selected' : ''}>${escapeHtml(u.name)}</option>`).join('');
+      document.getElementById('choreModal').classList.remove('hidden');
+    }
+
+    function openNoticeModal() {
+      document.getElementById('noticeModal').classList.remove('hidden');
+    }
+
+    function openUserModal() {
+      document.getElementById('userModal').classList.remove('hidden');
+    }
+
+    function closeModals() {
+      ['profileModal', 'choreModal', 'noticeModal', 'userModal'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.remove('opacity-0', 'translate-y-[-8px]');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-8px]');
+      }, 2400);
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Avvio iniziale + aggiornamento automatico ogni 10 secondi
+    syncFromDatabase();
+    setInterval(() => syncFromDatabase(true), 10000);
+  </script>
+</body>
+</html>
